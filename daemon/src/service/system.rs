@@ -146,6 +146,7 @@ impl Service {
 }
 
 // Tries to create a pre-update snapshot.
+#[cfg(feature = "snapshot")]
 async fn snapshot(connection: &Connection) -> anyhow::Result<()> {
     let daemon = PopSnapshotProxy::new(connection)
         .await
