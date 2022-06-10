@@ -19,6 +19,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::task::JoinHandle;
 use zbus::Connection;
+#[cfg(feature = "snapshot")]
+use zbus_pop_snapshot::{PopSnapshotProxy, SnapshotProxy};
 
 pub struct Service {
     updating: Arc<AtomicBool>,
@@ -42,6 +44,14 @@ impl Service {
         let updating = self.updating.clone();
 
         self.update_task = Some(tokio::task::spawn(async move {
+            #[cfg(feature = "snapshot")]
+            {
+                if let Err(err) = snapshot(&connection).await {
+                    error!("failed to create pre-upgrade snapshot: {:?}", err);
+                    warn!("snapshot failed; continuing with update anyways");
+                }
+            }
+
             let _ = futures::join!(
                 crate::package_managers::apt::update(connection.clone()),
                 crate::package_managers::flatpak::update(connection.clone()),
@@ -133,6 +143,45 @@ impl Service {
             }
         }
     }
+}
+
+// Tries to create a pre-update snapshot.
+async fn snapshot(connection: &Connection) -> anyhow::Result<()> {
+    let daemon = PopSnapshotProxy::new(connection)
+        .await
+        .context("failed to connect to pop-snapshot daemon")?;
+    info!("snapshotting system");
+    let now = Local::now();
+    let snapshot_path = daemon
+        .create_snapshot(
+            Some(format!(
+                "Automatic Pre-Upgrade Snapshot [{}]",
+                now.format("%a, %b %d %Y @ %H:%M:%S")
+            ))
+            .into(),
+            Some("Automatically created by pop-system-update before a system update".to_string())
+                .into(),
+            None.into(),
+        )
+        .await
+        .context("failed to create snapshot")?;
+    let snapshot = SnapshotProxy::builder(&connection)
+        .path(&snapshot_path)
+        .context("daemon returned invalid path")?
+        .build()
+        .await
+        .with_context(|| {
+            format!(
+                "failed to get info on snapshot at path {}",
+                snapshot_path.as_str()
+            )
+        })?;
+    let uuid = snapshot
+        .uuid()
+        .await
+        .context("failed to get snapshot uuid")?;
+    info!("created snapshot {}", uuid);
+    Ok(())
 }
 
 // Watches for an interrupt signal.

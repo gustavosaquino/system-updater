@@ -2332,6 +2332,7 @@ dependencies = [
  "users",
  "whitespace-conf",
  "zbus",
+ "zbus-pop-snapshot",
  "zvariant",
 ]
 
@@ -3863,6 +3864,7 @@ dependencies = [
  "async-broadcast",
  "async-channel",
  "async-executor",
+ "async-io",
  "async-lock",
  "async-recursion",
  "async-task",
@@ -3890,6 +3892,14 @@ dependencies = [
  "zbus_macros",
  "zbus_names",
  "zvariant",
+]
+
+[[package]]
+name = "zbus-pop-snapshot"
+version = "0.1.0"
+source = "git+https://github.com/pop-os/snapshot#6e1e671dff2d796b368a1f2de1ff3862be7cda49"
+dependencies = [
+ "zbus",
 ]
 
 [[package]]
