@@ -160,7 +160,7 @@ async fn snapshot(connection: &Connection) -> anyhow::Result<()> {
                 now.format("%a, %b %d %Y @ %H:%M:%S")
             ))
             .into(),
-            Some("Automatically created by pop-system-update before a system update".to_string())
+            Some("Automatically created by pop-system-updater before a system update".to_string())
                 .into(),
             None.into(),
         )
